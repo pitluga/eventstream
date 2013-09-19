@@ -15,28 +15,19 @@
   (s/validate (:identity-schema event-stream) id)
   {:stream event-stream
    :version 0
+   :created-at nil
+   :updated-at nil
    :identity id
    :events []
    :snapshot {}})
 
-(defn event->delta [metadata event]
-  (letfn [(assoc-created-at [delta]
-            (if (= 1 (:version event))
-              (assoc delta :created_at (:created_at event))
-              delta))]
-    (-> metadata
-      (merge (:attributes event))
-      (assoc-created-at)
-      (assoc :updated_at (:created_at event)))))
-
-(defn assoc-snapshot [{:keys [events metadata] :as entity}]
-  (->> events
-    (map (partial event->delta metadata))
-    (reduce merge {})
-    (assoc entity :snapshot)))
-
 (defn assoc-version [{:keys [events] :as entity}]
   (assoc entity :version (apply max (map :version events))))
+
+(defn assoc-timestamps [{:keys [events] :as entity}]
+  (-> entity
+    (assoc :created-at (:created_at (first events)))
+    (assoc :updated-at (:created_at (last events)))))
 
 (defn validate-event [entity event-name event-data]
   (let [schema (get-in entity [:stream :event-schemas event-name])]
@@ -52,8 +43,9 @@
                                         :type event-name)]
     (-> entity
       (update-in [:events] conj event)
+      (update-in [:snapshot] merge (:attributes event))
       (assoc-version)
-      (assoc-snapshot))))
+      (assoc-timestamps))))
 ;
 ;(defn store! [db stream entity]
 ;  (-> entity

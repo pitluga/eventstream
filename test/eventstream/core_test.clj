@@ -15,6 +15,8 @@
     (is (= 0 (:version entity)))
     (is (= {:id 1} (:identity entity)))
     (is (= [] (:events entity)))
+    (is (nil? (:created-at entity)))
+    (is (nil? (:updated-at entity)))
     (is (= {} (:snapshot entity)))))
 
 (deftest raises-exception-if-metadata-does-not-match-schema
@@ -25,9 +27,9 @@
   (let [entity (append (new-entity test-stream {:id 1}) :start {:value "started"})]
     (is (= 1 (:version entity)))
     (is (= 1 (count (:events entity))))
-    (is (not (nil? (get-in entity [:snapshot :created_at]))))
-    (is (not (nil? (get-in entity [:snapshot :updated_at]))))
-    (is (= (get-in entity [:snapshot :created_at]) (get-in entity [:snapshot :updated_at])))
+    (is (not (nil? (:created-at entity))))
+    (is (not (nil? (:updated-at entity))))
+    (is (= (:created-at entity) (:updated-at entity)))
     (is (= "started" (get-in entity [:snapshot :value])))))
 
 (deftest appends-multiple-events
@@ -36,7 +38,9 @@
                  (append :stop  {:value "different"}))]
     (is (= 2 (:version entity)))
     (is (= 2 (count (:events entity))))
-    (is (not (nil? (get-in entity [:snapshot :created_at]))))
+    (is (not (nil? (:created-at entity))))
+    (is (not (nil? (:updated-at entity))))
+    (is (not (= (:created-at entity) (:updated-at entity))))
     (is (= "different" (get-in entity [:snapshot :value])))))
 
 (deftest cannot-append-events-not-matching-schema

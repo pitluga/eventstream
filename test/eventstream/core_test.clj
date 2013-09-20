@@ -6,8 +6,13 @@
 (def test-stream
   (stream :test-events
           :identity {:id s/Number}
-          :events {:start {:value s/String}
+          :events {:double {:number s/Number}
+                   :start {:value s/String}
                    :stop  {:value s/String}}))
+
+(defmethod merge-event [:test-events :double] [entity event]
+  (update-in entity [:snapshot] merge
+             (:attributes (update-in event [:attributes :number] (partial * 2)))))
 
 (deftest create-a-new-entity-from-a-stream
   (let [entity (new-entity test-stream {:id 1})]
@@ -54,6 +59,12 @@
     (testing "bad event"
       (is (thrown? RuntimeException #"Unknown event: pause"
                    (append entity :pause {:value "foo"}))))))
+
+(deftest can-define-custom-event-application-functions
+  (let [entity (-> (new-entity test-stream {:id 1})
+                 (append :double {:number 1}))]
+    (is (= 2 (get-in entity [:snapshot :number])))))
+
 ;
 ;(deftest can-store-and-fetch-events-from-the-db
 ;  (let [stream (es/define-stream :transaction_events {:merchant_id s/Number :public_id s/String})

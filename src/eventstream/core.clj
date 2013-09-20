@@ -5,6 +5,13 @@
   (store [event-store entity])
   (fetch [event-store entity]))
 
+(defmulti merge-event
+  (fn [entity event]
+    [(get-in entity [:stream :collection]) (:type event)]))
+
+(defmethod merge-event :default [entity event]
+  (update-in entity [:snapshot] merge (:attributes event)))
+
 (defn stream [collection & opts]
   (let [options (apply assoc {} opts)]
     {:collection collection
@@ -43,7 +50,7 @@
                                         :type event-name)]
     (-> entity
       (update-in [:events] conj event)
-      (update-in [:snapshot] merge (:attributes event))
+      (merge-event event)
       (assoc-version)
       (assoc-timestamps))))
 ;

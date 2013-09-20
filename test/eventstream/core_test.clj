@@ -45,7 +45,8 @@
     (is (= 2 (count (:events entity))))
     (is (not (nil? (:created-at entity))))
     (is (not (nil? (:updated-at entity))))
-    (is (not (= (:created-at entity) (:updated-at entity))))
+    (is (or (.before (:created-at entity) (:updated-at entity))
+            (= (:created-at entity) (:updated-at entity))))
     (is (= "different" (get-in entity [:snapshot :value])))))
 
 (deftest cannot-append-events-not-matching-schema
@@ -60,7 +61,7 @@
       (is (thrown? RuntimeException #"Unknown event: pause"
                    (append entity :pause {:value "foo"}))))))
 
-(deftest can-define-custom-event-application-functions
+(deftest can-define-custom-merge-event-functions
   (let [entity (-> (new-entity test-stream {:id 1})
                  (append :double {:number 1}))]
     (is (= 2 (get-in entity [:snapshot :number])))))
